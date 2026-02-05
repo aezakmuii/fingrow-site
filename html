@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>FinGrow — Финансовая грамотность</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/framer-motion@11/dist/framer-motion.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Manrope', sans-serif; background: #0a0e27; color: white; }
+    .orbitron { font-family: 'Orbitron', sans-serif; }
+    .glass { background: rgba(255,255,255,0.06); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.12); }
+    .gradient-text { background: linear-gradient(90deg, #10b981, #3b82f6, #f59e0b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  </style>
+</head>
+<body class="min-h-screen">
+
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect } = React;
+const { motion, AnimatePresence } = framerMotion;
+
+const lessons = [
+  { id:1, title:"Что такое деньги", unit:"Основы", theory:"Деньги — это средство обмена, мера стоимости и средство накопления...", questions:[
+    {q:"Основная функция денег?", a:["Обмен","Еда","Красота"], c:0},
+    {q:"Бартер — это?", a:["Обмен товарами напрямую","Покупка за деньги"], c:0},
+    // ... ещё 8 вопросов
+  ]},
+  { id:2, title:"История денег", unit:"Основы", theory:"От ракушек и соли до биткоина...", questions:[] /* аналогично */},
+  // Добавь ещё 20–40 уроков по аналогии (или оставь генерацию ниже)
+  // Для демо оставим 5, дальше можно расширять
+];
+
+function generateMoreLessons() {
+  const more = [];
+  for(let i = lessons.length+1; i<=40; i++){
+    more.push({
+      id:i,
+      title:`Урок ${i}: Продвинутые финансы ${i}`,
+      unit: i%5===0 ? "Инвестиции" : i%3===0 ? "Бюджет" : "Кредиты",
+      theory:"Здесь будет подробная теория по теме...",
+      questions: Array(10).fill(0).map((_,idx)=>({
+        q:`Вопрос ${idx+1} по теме?`,
+        a:["Вариант А","Вариант Б","Вариант В","Вариант Г"],
+        c: Math.floor(Math.random()*4)
+      }))
+    });
+  }
+  return more;
+}
+
+const allLessons = [...lessons, ...generateMoreLessons()];
+
+function App() {
+  const [page, setPage] = useState("landing");
+  const [user, setUser] = useState(null);
+  const [currentLesson, setCurrentLesson] = useState(null);
+  const [showAdmin, setShowAdmin] = useState(false);
+  const [showCert, setShowCert] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("fg_user");
+    if (saved) {
+      setUser(JSON.parse(saved));
+      setPage("dashboard");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (user) localStorage.setItem("fg_user", JSON.stringify(user));
+  }, [user]);
+
+  const login = (name, surname, email) => {
+    const newUser = { name, surname, email, xp:0, completed:new Set() };
+    setUser(newUser);
+    setPage("dashboard");
+  };
+
+  const completeLesson = (id) => {
+    const updated = {...user};
+    updated.completed.add(id);
+    updated.xp += 100;
+    setUser(updated);
+    if (updated.completed.size >= allLessons.length) setShowCert(true);
+  };
+
+  if (page === "landing") {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center px-6 text-center">
+        <h1 className="text-5xl md:text-7xl font-black orbitron gradient-text mb-8">FinGrow</h1>
+        <p className="text-xl md:text-2xl mb-12 max-w-3xl">100 уроков финансовой грамотности → от нуля до уверенного инвестора</p>
+        <button 
+          onClick={()=>setPage("register")}
+          className="bg-emerald-600 hover:bg-emerald-500 px-12 py-5 rounded-2xl text-2xl font-bold shadow-2xl shadow-emerald-900/40"
+        >
+          Начать бесплатно
+        </button>
+      </div>
+    );
+  }
+
+  if (page === "register") {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6">
+        <div className="glass p-10 rounded-3xl w-full max-w-md">
+          <h2 className="text-3xl font-bold mb-8 text-center">Регистрация</h2>
+          <form onSubmit={e=>{e.preventDefault(); login(e.target.name.value, e.target.surname.value, e.target.email.value)}} className="space-y-6">
+            <input name="name" placeholder="Имя" required className="w-full p-4 rounded-xl bg-white/10 border border-white/20 focus:outline-none focus:border-emerald-400" />
+            <input name="surname" placeholder="Фамилия" required className="w-full p-4 rounded-xl bg-white/10 border border-white/20 focus:outline-none focus:border-emerald-400" />
+            <input name="email" type="email" placeholder="Email" required className="w-full p-4 rounded-xl bg-white/10 border border-white/20 focus:outline-none focus:border-emerald-400" />
+            <button type="submit" className="w-full bg-emerald-600 py-4 rounded-xl font-bold text-lg hover:bg-emerald-500">Зарегистрироваться</button>
+          </form>
+          <p className="text-center mt-6 text-sm opacity-70">
+            Уже есть аккаунт? <button onClick={()=>setPage("dashboard")} className="text-emerald-400 underline">Войти</button>
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (page === "dashboard") {
+    if (user?.email === "admin" && user?.name === "admin") setShowAdmin(true);
+
+    return (
+      <div className="min-h-screen p-6 pt-24">
+        <header className="fixed top-0 left-0 right-0 glass z-50 p-4 flex justify-between items-center">
+          <div className="text-2xl font-black gradient-text">FinGrow</div>
+          <div className="flex items-center gap-6">
+            <div>XP: {user?.xp || 0}</div>
+            <button onClick={()=>setShowCert(true)} className="text-sm underline opacity-80 hover:opacity-100">Сертификат</button>
+          </div>
+        </header>
+
+        <h1 className="text-4xl font-bold mb-12 text-center">Привет, {user?.name}!</h1>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+          {allLessons.map(les => {
+            const done = user?.completed?.has(les.id);
+            return (
+              <motion.div 
+                key={les.id}
+                whileHover={{ scale: 1.04, y:-8 }}
+                className={`glass p-6 rounded-2xl cursor-pointer ${done ? "opacity-60" : ""}`}
+                onClick={() => !done && setCurrentLesson(les)}
+              >
+                <div className="text-sm opacity-70 mb-2">{les.unit}</div>
+                <h3 className="text-xl font-bold mb-3">{les.title}</h3>
+                {done && <div className="text-emerald-400 text-sm">✓ Пройден</div>}
+              </motion.div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  if (currentLesson) {
+    return <LessonView lesson={currentLesson} onBack={()=>setCurrentLesson(null)} onComplete={()=>completeLesson(currentLesson.id)} />;
+  }
+
+  if (showCert && user) {
+    return <Certificate name={`${user.name} ${user.surname}`} xp={user.xp} onClose={()=>setShowCert(false)} />;
+  }
+
+  if (showAdmin) {
+    return <div className="p-10 text-center">Админ-панель (пока заглушка)<br/><button onClick={()=>setShowAdmin(false)}>Закрыть</button></div>;
+  }
+
+  return null;
+}
+
+function LessonView({lesson, onBack, onComplete}) {
+  const [step, setStep] = useState("theory");
+  const [score, setScore] = useState(0);
+  const [answers, setAnswers] = useState({});
+
+  const handleAnswer = (qIdx, choice) => {
+    setAnswers(prev => ({...prev, [qIdx]: choice}));
+  };
+
+  const finishQuiz = () => {
+    let correct = 0;
+    lesson.questions.forEach((q,i) => {
+      if (answers[i] === q.c) correct++;
+    });
+    setScore(correct);
+    setStep("result");
+  };
+
+  if (step === "theory") {
+    return (
+      <div className="min-h-screen p-6 pt-24">
+        <button onClick={onBack} className="mb-8 text-emerald-400">← Назад</button>
+        <h1 className="text-4xl font-bold mb-10">{lesson.title}</h1>
+        <div className="glass p-8 rounded-2xl prose prose-invert max-w-none">
+          <p>{lesson.theory}</p>
+          <p className="mt-8">Продолжай чтение, затем переходи к вопросам.</p>
+        </div>
+        <button 
+          onClick={()=>setStep("quiz")}
+          className="mt-10 bg-emerald-600 px-10 py-4 rounded-xl font-bold text-lg hover:bg-emerald-500"
+        >
+          Перейти к вопросам →
+        </button>
+      </div>
+    );
+  }
+
+  if (step === "quiz") {
+    return (
+      <div className="min-h-screen p-6 pt-24">
+        <button onClick={()=>setStep("theory")} className="mb-6 text-emerald-400">← Теория</button>
+        <h2 className="text-3xl font-bold mb-10">Практика: {lesson.title}</h2>
+        
+        <div className="space-y-10 max-w-3xl mx-auto">
+          {lesson.questions.map((q, i) => (
+            <div key={i} className="glass p-6 rounded-2xl">
+              <p className="text-lg font-medium mb-4">{i+1}. {q.q}</p>
+              <div className="grid gap-3">
+                {q.a.map((opt, j) => (
+                  <button
+                    key={j}
+                    onClick={()=>handleAnswer(i, j)}
+                    className={`p-4 rounded-xl text-left transition-all ${
+                      answers[i]===j ? "bg-emerald-600/40 border-emerald-400" : "bg-white/5 hover:bg-white/10"
+                    } border ${answers[i]===j ? "border-2" : "border-transparent"}`}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <button 
+          onClick={finishQuiz}
+          disabled={Object.keys(answers).length < lesson.questions.length}
+          className="mt-12 bg-emerald-600 px-12 py-5 rounded-2xl font-bold text-xl disabled:opacity-50 disabled:cursor-not-allowed hover:bg-emerald-500"
+        >
+          Завершить тест
+        </button>
+      </div>
+    );
+  }
+
+  if (step === "result") {
+    const percent = Math.round((score / lesson.questions.length) * 100);
+    const success = percent >= 70;
+    
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center">
+        <div className="text-6xl mb-6">{success ? "🎉" : "⚡"}</div>
+        <h2 className="text-4xl font-bold mb-4">
+          {success ? "Отлично!" : "Хорошая попытка"}
+        </h2>
+        <p className="text-2xl mb-10">
+          Результат: {score} из {lesson.questions.length} ({percent}%)
+        </p>
+        
+        {success ? (
+          <button 
+            onClick={()=>{onComplete(); onBack();}}
+            className="bg-emerald-600 px-12 py-6 rounded-2xl text-2xl font-bold hover:bg-emerald-500 mb-6"
+          >
+            Завершить урок →
+          </button>
+        ) : (
+          <button 
+            onClick={()=>setStep("quiz")}
+            className="bg-amber-600 px-10 py-5 rounded-xl text-xl hover:bg-amber-500"
+          >
+            Попробовать ещё раз
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  return null;
+}
+
+function Certificate({name, xp, onClose}) {
+  const downloadPDF = () => {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+    
+    doc.setFillColor(10, 14, 39);
+    doc.rect(0, 0, 297, 210, "F");
+    
+    doc.setFontSize(48);
+    doc.setTextColor(16, 185, 129);
+    doc.text("CERTIFICATE", 148.5, 50, { align: "center" });
+    
+    doc.setFontSize(28);
+    doc.setTextColor(255,255,255);
+    doc.text("FinGrow", 148.5, 75, { align: "center" });
+    
+    doc.setFontSize(36);
+    doc.text(name, 148.5, 110, { align: "center" });
+    
+    doc.setFontSize(22);
+    doc.text(`Прошёл курс финансовой грамотности`, 148.5, 135, { align: "center" });
+    doc.text(`Набрано XP: ${xp}`, 148.5, 155, { align: "center" });
+    
+    doc.setFontSize(16);
+    doc.setTextColor(150,150,150);
+    doc.text(`Дата: ${new Date().toLocaleDateString("ru-RU")}`, 148.5, 180, { align: "center" });
+    
+    doc.save(`fingrow_certificate_${name.replace(/\s+/g,'_')}.pdf`);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-6 z-50" onClick={onClose}>
+      <div className="glass p-12 rounded-3xl max-w-4xl w-full text-center" onClick={e=>e.stopPropagation()}>
+        <h2 className="text-5xl font-black gradient-text mb-8">ПОЗДРАВЛЯЕМ!</h2>
+        <div className="text-3xl mb-6">{name}</div>
+        <p className="text-xl mb-10 opacity-90">Вы успешно завершили курс финансовой грамотности на платформе FinGrow</p>
+        <div className="text-2xl mb-12">XP: {xp}</div>
+        
+        <button onClick={downloadPDF} className="bg-emerald-600 px-12 py-6 rounded-2xl text-2xl font-bold hover:bg-emerald-500">
+          Скачать сертификат (PDF)
+        </button>
+        
+        <button onClick={onClose} className="block mx-auto mt-8 text-emerald-400 underline">Закрыть</button>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.render(<App />, document.getElementById("root"));
+</script>
+</body>
+</html>
